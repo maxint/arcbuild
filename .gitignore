@@ -1,0 +1,10 @@
+_*/
+*.zip
+/test.cmake
+/build_test.sh
+/*.gz
+/a.out
+/main.c
+/tmp/
+/*.map
+.vscode/
