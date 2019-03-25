@@ -5,7 +5,7 @@
 #
 # SDK_ROOT = automatic (default: xcode-select --print-path) or /path/to/Contents/Developer
 #
-# SDK_ARCH = empty (default: "armv7;armv7s;arm64") or "armv7;armv7s;arm64"|"i386;x86_64"|"i686;x86_64"
+# SDK_ARCH = empty (default: "armv7;armv7s;arm64;arm64e") or "armv7;armv7s;arm64;arm64e"|"i386;x86_64"|"i686;x86_64"
 #   set the architecture for iOS - sets armv7;armv7s;arm64 and appears to be XCode's standard.
 #
 # SDK_API_VERSION = empty (default: oldest) or 6.1|7.1|8.1
@@ -59,7 +59,7 @@ message(STATUS "XCODE_VERSION: ${XCODE_VERSION}")
 
 # hard set values
 if(NOT SDK_ARCH)
-  set(SDK_ARCH "armv7;armv7s;arm64")
+  set(SDK_ARCH "armv7;armv7s;arm64;arm64e")
 else()
   string(REPLACE " " ";" SDK_ARCH "${SDK_ARCH}") # Add support of arch's seperated by space
 endif()
@@ -71,7 +71,7 @@ set(APPLE 1)
 set(IOS 1)
 
 # iOS target
-if(SDK_ARCH MATCHES "(armv7|armv7s|arm64)")
+if(SDK_ARCH MATCHES "(armv7|armv7s|arm64|arm64e)")
   set(IOS_TARGET "iPhoneOS")
   set(ARM 1)
   set(SDK_C_FLAGS "-miphoneos-version-min=7.0 -mfloat-abi=softfp -mfpu=neon -ftree-vectorize -ffast-math") # Enable NEON for ARM
