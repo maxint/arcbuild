@@ -44,6 +44,7 @@ endif()
 if(NOT SDK_ROOT)
   message(FATAL_ERROR "Please set SDK_ROOT variable to toolchain root directory (e.g. /Applications/Xcode8.0.app/Contents/Developer)")
 endif()
+message(STATUS "SDK_ROOT: ${SDK_ROOT}")
 
 # find xcode version
 if(NOT XCODE_VERSION)
