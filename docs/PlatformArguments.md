@@ -31,7 +31,7 @@
 
 ```
 -DPLATFORM=ios
--DARCH=[armv7;][armv7s;][arm64] (armv7;armv7s;arm64 by default)
+-DARCH=[armv7;][armv7s;][arm64;][arm64e] (armv7;armv7s;arm64;arm64e by default)
 -DIOS_BITCODE=(ON,OFF) (OFF by default)
 ```
 
