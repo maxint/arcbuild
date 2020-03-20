@@ -168,7 +168,13 @@ endif()
 message(STATUS "SDK_ARCH: ${SDK_ARCH}")
 message(STATUS "SDK_ARCH_ABI: ${SDK_ARCH_ABI}")
 message(STATUS "SDK_PROCESSOR: ${SDK_PROCESSOR}")
-set(_lib_root "${SDK_ROOT}/sources/cxx-stl/stlport/libs")
+
+if(NDK_VERSION VERSION_LESS 17)
+  set(_lib_root "${SDK_ROOT}/sources/cxx-stl/stlport/libs")
+else()
+  set(_lib_root "${SDK_ROOT}/sources/cxx-stl/llvm-libc++/libs")
+endif()
+
 file(GLOB SDK_ARCH_ABI_SUPPORTED RELATIVE "${_lib_root}" "${_lib_root}/*")
 list(FIND SDK_ARCH_ABI_SUPPORTED ${SDK_ARCH_ABI} SDK_ARCH_ABI_FOUND)
 if(SDK_ARCH_ABI_FOUND EQUAL -1)
@@ -201,6 +207,9 @@ if(NOT SDK_TOOLCHAIN)
   set(SDK_TOOLCHAIN clang)
   message(STATUS "No TOOLCHAIN is set, default is clang")
 endif()
+if(SDK_TOOLCHAIN STREQUAL "clang")
+  set(SDK_TOOLCHAIN_NAME "llvm")
+else()
 if(SDK_PROCESSOR STREQUAL "arm64")
   set(SDK_TOOLCHAIN_PREFIX "aarch64")
 elseif(SDK_PROCESSOR STREQUAL "amd64")
@@ -220,6 +229,7 @@ foreach(_TC ${SDK_TOOLCHAIN_NAME_SUPPORTED})
     break()
   endif()
 endforeach()
+endif()
 message(STATUS "Use the latest gcc toolchain '${SDK_TOOLCHAIN_NAME}'")
 file(GLOB SDK_TOOLCHAIN_ROOT "${SDK_ROOT}/toolchains/${SDK_TOOLCHAIN_NAME}/prebuilt/*")
 
@@ -285,7 +295,7 @@ elseif(SDK_STL MATCHES "^c\\+\\+_(static|shared)$")
                            "${SDK_STL_ROOT}/include" "${SDK_STL_ROOT}/libcxx/include"
                            "${SDK_ROOT}/sources/cxx-stl/llvm-libc++abi/include"
                            "${SDK_ROOT}/sources/cxx-stl/llvm-libc++abi/libcxxabi/include")
-  set(SDK_STL_LDFLAGS      "-L${SDK_STL_ROOT}/libs/${SDK_ARCH_ABI}")
+  set(SDK_STL_LDFLAGS      "-L${SDK_STL_ROOT}/libs/${SDK_ARCH_ABI} -L${SDK_TOOLCHAIN_ROOT}/sysroot/usr/lib/${SDK_HEADER_TRIPLE}/${SDK_API_VERSION}")
   set(SDK_STL_LIB          "-l${SDK_STL} -lc++abi")
 else()
   message(FATAL_ERROR "Unknown NDK STL: ${SDK_STL}")
@@ -392,7 +402,7 @@ list(APPEND SDK_C_FLAGS
   -fstack-protector-strong
   -no-canonical-prefixes
   -Wa,--noexecstack
-  -Wformat -Werror=format-security)
+  -Wformat -Werror=format-security) 
 
 # combine
 string(REPLACE ";" " " SDK_C_FLAGS          "${SDK_C_FLAGS}")

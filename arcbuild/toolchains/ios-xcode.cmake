@@ -6,7 +6,7 @@
 # SDK_ROOT = automatic (default: xcode-select --print-path) or /path/to/Contents/Developer
 #
 # SDK_ARCH = empty (default: "armv7;armv7s;arm64;arm64e") or "armv7;armv7s;arm64;arm64e"|"i386;x86_64"|"i686;x86_64"
-#   set the architecture for iOS - sets armv7;armv7s;arm64 and appears to be XCode's standard.
+#   set the architecture for iOS - sets armv7;armv7s;arm64;arm64e and appears to be XCode's standard.
 #
 # SDK_API_VERSION = empty (default: oldest) or 6.1|7.1|8.1
 #
