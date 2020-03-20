@@ -1,6 +1,7 @@
 # ArcBuild
 
 [![build status](https://api.travis-ci.org/maxint/arcbuild.svg?branch=master)](https://travis-ci.org/maxint/arcbuild)
+[![build status](workflows/linux-x64-clang/badge.svg)](actions)
 
 Easy native and cross compiling for CMake projects.
 
