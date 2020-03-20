@@ -58,7 +58,7 @@ cmake -P arcbuild.cmake -DPLATFORM=vs2017
 cmake -P arcbuild.cmake -DPLATFORM=linux
 ```
 
-#### Build for iOS (`ARCH="armv7;armv7s;arm64"` by default)
+#### Build for iOS (`ARCH="armv7;armv7s;arm64;arm64e"` by default)
 
 ```shell
 cmake -P arcbuild.cmake -DPLATFORM=ios -DIOS_BITCODE=ON
