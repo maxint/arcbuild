@@ -1,0 +1,11 @@
+name: windows-x64-vs2019
+on: [push, pull_request]
+jobs:
+  windows-vs2019:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: configure
+      run: mkdir build && cd build && cmake -P ../arcbuild.cmake -DPLATFORM=vs2019 ..
+    - name: build
+      run: cmake --build build -j2
