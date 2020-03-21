@@ -23,6 +23,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
 get_filename_component(SDK_ROOT "${SDK_ROOT}" ABSOLUTE)
 set(EMSCRIPTEN_ROOT_PATH "${SDK_ROOT}")
 include("${EMSCRIPTEN_ROOT_PATH}/cmake/Modules/Platform/Emscripten.cmake")
+set(EMSCRIPTEN 1)
 
 # We would prefer to specify a standard set of Clang+Emscripten-friendly common convention for suffix files, especially for CMake executable files,
 # but if these are adjusted, ${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake will fail, since it depends on being able to compile output files with predefined names.

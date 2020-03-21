@@ -14,9 +14,6 @@ Easy native and cross compiling for CMake projects.
 
 - Pure CMake scripts and no other dependencies.
 - Support major platforms and system architectres, e.g. `windows`, `linux`, `android`, `ios`, `tizen`, etc.
-- [BETA] Support to combine multiple modules into one library automatically.
-  It's useful when building static library for SDK delivery ([check detail](docs/Advanced.md)).
-
 
 ## Dependencies
 
@@ -26,15 +23,30 @@ Easy native and cross compiling for CMake projects.
 ## Usage
 
 1. Download `arcbuild` and `arcbuild.cmake` to `<root of your project>/cmake`.
-2. Build your project by runing `cmake -P cmake/arcbuild.cmake`.
-3. More documents will be found in [docs](docs/README.md).
+2. Generate build directory and build.
 
-```
+```shell
 mkdir build
 cd build
-cmake -P arcbuild.cmake [(-D<var>=<value>)...] [<path-to-source>]
-make
+cmake -P ../arcbuild.cmake [(-D<var>=<value>)...] [<path-to-source>]
+cmake --build . --config <config> [--target <target>]
 ```
+
+More `arcbuild.cmake` documents will be found in [docs](docs/README.md),
+and see [CMake Build Tool Mode](https://cmake.org/cmake/help/latest/manual/cmake.1.html#build-tool-mode)
+
+## Supported Platforms and Arguments Preview
+
+| OS             | PLATFORM         | ARCH                         | More Arguments              |
+|----------------|------------------|------------------------------|-----------------------------|
+| Windows        | vs201{2,3,5,7,9} | x86, x64, arm                |                             |
+| Linux          | linux            | x86, x64                     |                             |
+| Android        | android          | arm{,v7-a,v8-a,64}, x86, x64 | TOOLCHAIN, STL, API_VERSION |
+| iOS            | ios              | [armv7;][armv7s;][arm64]     | IOS_BITCODE, API_VERSION    |
+| Raspberry Pi   | pi               | arm{,v7-a,v8-a}              |                             |
+| [Emscripten]() | emscripten       |                              |                             |
+| Custom ARM     | linux            | arm{,v7-a,v8-a}, x86, x64    |                             |
+| Qualcomm TEE   | qtee             | arm{v5,v6m,v7,v7m,64}        |                             |
 
 
 ### Building Examples
@@ -43,8 +55,7 @@ make
 
 ```shell
 cmake -DPLATFORM=android -DROOT="E:\NDK\android-ndk-r11b" -P arcbuild.cmake
-# or read ROOT from ANDROID_NDK_ROOT enviroment variable
-cmake -DPLATFORM=android -P arcbuild.cmake
+cmake -DPLATFORM=android -P arcbuild.cmake # use $ANDROID_NDK_ROOT
 ```
 
 #### Build for MSVC (`ARCH=x86` by default)
@@ -68,10 +79,16 @@ cmake -P arcbuild.cmake -DPLATFORM=ios -DIOS_BITCODE=ON
 cmake -P arcbuild.cmake -DPLATFORM=ios -DARCH="i386;x86_64"
 ```
 
+#### Build for [Emscripten]()
+
+```shell
+cmake -P arcbuild.cmake -DPLATFORM=emscripten -DROOT=D:\sdk\emsdk-master\emscripten\1.38.11 -DMAKE_PROGRAM=D:\gnu-tools\bin\make.exe
+```
+
 #### Custom cross compiling for Linux based platform
 
 ```shell
-cmake -P arcbuild.cmake -DPLATFORM=linux -DARCH=arm -DTOOLCHAIN_FILE=gcc-toolchain.cmake -DROOT=~/xxx/prebuilt/toolschain/usr
+cmake -P arcbuild.cmake -DPLATFORM=linux -DARCH=arm -DROOT=~/arm-toolchain
 ```
 
 For more arguments, please check [Arguments for Platforms](docs/PlatformArguments.md).
@@ -80,10 +97,10 @@ For more arguments, please check [Arguments for Platforms](docs/PlatformArgument
 ## Example Projects
 
 - [hello_world](examples/hello_world): "Hello world" project.
-- [combine_modules](examples/combine_modules): Simple SDK with multiple dependencies.
 
 
 ## TODO
 
 - More tests.
-- Set compile flags to individual source files.
+
+[Emscripten]: https://kripken.github.io/emscripten-site/index.html

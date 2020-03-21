@@ -6,6 +6,6 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: configure
-      run: mkdir build && cd build && cmake -P ../arcbuild.cmake -DPLATFORM=ios ..
+      run: mkdir build && cd build && cmake -P ../arcbuild.cmake -DPLATFORM=ios ../examples
     - name: build
       run: cmake --build build -j2

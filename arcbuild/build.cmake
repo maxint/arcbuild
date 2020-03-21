@@ -3,6 +3,16 @@
 
 include("${ARCBUILD}/core.cmake")
 
+
+function(arcbuild_set_to_short_var prefix)
+  foreach(name ${ARGN})
+    if(NOT DEFINED ${name} AND DEFINED ${prefix}_${name})
+      set(${name} "${${prefix}_${name}}" PARENT_SCOPE)
+    endif()
+  endforeach()
+endfunction()
+
+
 function(arcbuild_set_from_short_var prefix)
   foreach(name ${ARGN})
     if(DEFINED ${name})
@@ -11,38 +21,27 @@ function(arcbuild_set_from_short_var prefix)
   endforeach()
 endfunction()
 
-function(arcbuild_set_to_short_var prefix)
-  foreach(name ${ARGN})
-    set(prefix_name "${prefix}_${name}")
-    if(${prefix_name})
-      set(${name} "${${prefix_name}}" PARENT_SCOPE)
-    endif()
-  endforeach()
-endfunction()
-
-function(arcbuil_add_to_env_path)
-  foreach(path ${ARGN})
-    file(TO_NATIVE_PATH "${path}" path)
-    if(WIN32)
-      set(ENV{PATH} "$ENV{PATH};${path}")
-    else()
-      set(ENV{PATH} "$ENV{PATH}:${path}")
-    endif()
-  endforeach()
-endfunction()
 
 function(arcbuild_get_toolchain var_name platform)
+  set(path)
   if(platform STREQUAL "android")
     set(path "android-ndk.cmake")
-  elseif(platform MATCHES "^ios")
+  elseif(platform STREQUAL "ios")
     set(path "ios-xcode.cmake")
-  elseif(platform MATCHES "^tizen")
+  elseif(platform STREQUAL "tizen")
     set(path "tizen2.2.cmake")
-  else()
-    unset(path)
+  elseif(platform STREQUAL "emscripten")
+    set(path "Platform/Emscripten.cmake")
+  elseif(platform STREQUAL "pi")
+    set(path "gcc-pi.cmake")
+  elseif(platform STREQUAL "qtee")
+    set(path "snapdragon-llvm-arm.cmake")
+  elseif(platform STREQUAL "linux" AND ARGN MATCHES "^(arm|aarch64)") # arch
+    set(path "gcc-arm.cmake")
   endif()
   set(${var_name} ${path} PARENT_SCOPE)
 endfunction()
+
 
 function(arcbuild_get_make_program var_name platform root sdk)
   file(TO_CMAKE_PATH "${root}" root)
@@ -51,176 +50,19 @@ function(arcbuild_get_make_program var_name platform root sdk)
     file(GLOB path "${root}/prebuilt/*/bin/make*")
   elseif(platform MATCHES "^tizen")
     file(GLOB path "${root}/tools/*/bin/make*")
-  elseif(platform STREQUAL "windows")
-    if(sdk STREQUAL "vc6")
-      set(path "nmake")
-    else()
-      set(path "devenv")
-    endif()
-  else()
-    set(path "make")
-  endif()
-  if(path AND NOT path MATCHES "^(make|nmake|devenv|msbuild)$")
-    get_filename_component(path "${path}" ABSOLUTE)
-    file(TO_NATIVE_PATH "${path}" path)
-  endif()
-  set(${var_name} ${path} PARENT_SCOPE)
-endfunction()
-
-
-function(arcbuild_find_msbuild var_name vc_root)
-  file(GLOB search_paths
-    "$ENV{ProgramFiles}/MSBuild/*/Bin"
-    "$ENV{ProgramFiles} (x86)/MSBuild/*/Bin"
-  )
-  if(search_paths)
-    list(REVERSE search_paths)
-  endif()
-  list(INSERT search_paths 0 "${vc_root}/MSBuild/*/Bin")
-  unset(path)
-  find_file(path NAMES "msbuild.exe" "MSBuild.exe"
-    PATHS ${search_paths}
-    NO_DEFAULT_PATH
-  )
-  set(${var_name} ${path} PARENT_SCOPE)
-endfunction()
-
-
-function(arcbuild_find_devenv var_name vc_root)
-  unset(path)
-  find_file(path NAMES "devenv.com" "devenv.exe"
-    PATHS
-    "${vc_root}/Common/IDE/IDE98" # vc6
-    "${vc_root}/Common7/IDE" # vs2015, vs2017
-    NO_DEFAULT_PATH
-  )
-  set(${var_name} "${path}" PARENT_SCOPE)
-endfunction()
-
-
-function(arcbuild_find_vc_root_in_cache_file var_name binary_dir)
-  file(READ "${binary_dir}/CMakeCache.txt" content)
-  string(REGEX MATCH "CMAKE_LINKER:FILEPATH=.*/link.exe" line "${content}")
-  string(REPLACE "CMAKE_LINKER:FILEPATH=" "" line "${line}")
-  string(REGEX REPLACE "/VC/.*/link.exe" "" line "${line}")
-  set(${var_name} "${line}" PARENT_SCOPE)
-endfunction()
-
-
-function(arcbuild_find_vc_build_cmd var_name name binary_dir)
-  arcbuild_find_vc_root_in_cache_file(vc_root "${binary_dir}")
-  arcbuild_echo("VC_ROOT: ${vc_root}")
-  if(name STREQUAL "msbuild")
-    arcbuild_find_msbuild(path "${vc_root}")
-  elseif(name STREQUAL "devenv")
-    arcbuild_find_devenv(path "${vc_root}")
-  else()
-    arcbuild_error("Unknown VC build tool: ${name}")
   endif()
   if(NOT path)
-    arcbuild_error("Could not find VC build tool: ${name}")
+    find_program(CMAKE_MAKE_PROGRAM make PATHS $ENV{PATH})
+    set(path ${CMAKE_MAKE_PROGRAM})
   endif()
-  set(${var_name} "${path}" PARENT_SCOPE)
-endfunction()
-
-
-function(arcbuild_get_vc_root root_var sdk)
-  unset(path)
-  if(sdk STREQUAL "vc6")
-    find_path(path NAMES "Bin/VCVARS32.BAT"
-      PATHS
-      "$ENV{ProgramFiles}/Microsoft Visual Studio/VC98"
-      "$ENV{ProgramFiles} (x86)/Microsoft Visual Studio/VC98"
-      NO_DEFAULT_PATH
-    )
-  elseif(sdk STREQUAL "vs2017")
-    file(GLOB search_paths
-      "$ENV{ProgramFiles}/Microsoft Visual Studio/2017/*/VC"
-      "$ENV{ProgramFiles} (x86)/Microsoft Visual Studio/2017/*/VC"
-    )
-    find_path(path NAMES "Auxiliary/Build/vcvarsall.bat"
-      PATHS ${search_paths}
-      NO_DEFAULT_PATH
-    )
-  else()
-    if(sdk STREQUAL "vs2012")
-      set(version 11)
-    elseif(sdk STREQUAL "vs2013")
-      set(version 12)
-    elseif(sdk STREQUAL "vs2015")
-      set(version 14)
-    elseif(sdk STREQUAL "vs2017")
-      set(version 15)
-    endif()
-    find_path(path NAMES "vcvarsall.bat"
-      PATHS
-      "$ENV{VS${version}0COMNTOOLS}/../../VC"
-      "$ENV{ProgramFiles}/Microsoft Visual Studio ${version}.0/VC"
-      "$ENV{ProgramFiles} (x86)/Microsoft Visual Studio ${version}.0/VC"
-      NO_DEFAULT_PATH
-    )
-  endif()
-  if(path)
-    get_filename_component(path "${path}" ABSOLUTE)
-    file(TO_NATIVE_PATH "${path}" path)
-    set(${root_var} ${path} PARENT_SCOPE)
-    unset(path CACHE)
-  elseif(sdk STREQUAL "vc6")
-    arcbuild_error("Unknown VC SDK: ${sdk}!")
-  else()
-    arcbuild_warn("Could not find SDK root for: ${sdk}")
-  endif()
-endfunction()
-
-function(arcbuild_get_vc_env_run vc_env_run_var root sdk arch)
-  unset(vc_env_run)
-  if(sdk STREQUAL "vc6")
-    if(arch STREQUAL "x86")
-      set(vc_env_run "${root}\\Bin\\VCVARS32.BAT")
-    endif()
-  elseif(sdk STREQUAL "vs2017")
-    if(arch STREQUAL "x86")
-      set(vc_env_run "${root}\\Auxiliary\\Build\\vcvars32.bat")
-    elseif(arch STREQUAL "x64")
-      set(vc_env_run "${root}\\Auxiliary\\Build\\vcvars64.bat")
-    endif()
-  else()
-    if(DEFINED ENV{ProgramW6432})
-      if(arch STREQUAL "arm")
-        set(arch "amd64_arm")
-      elseif(arch STREQUAL "x64")
-        set(arch "amd64")
-      elseif(arch STREQUAL "x86")
-        set(arch "amd64_x86")
-      endif()
-    else()
-      if(arch STREQUAL "arm")
-        set(arch "x86_arm")
-      elseif(arch STREQUAL "x64")
-        set(arch "x86_amd64")
-      elseif(arch STREQUAL "x86")
-        set(arch "x86")
-      endif()
-    endif()
-    unset(path)
-    if(arch)
-      find_path(path NAMES "bin/${arch}/cl.exe" PATHS ${root} NO_DEFAULT_PATH)
-      if(path)
-        set(vc_env_run "${root}\\vcvarsall.bat" ${arch})
-        unset(path CACHE)
-      endif()
-    endif()
-  endif()
-  if(vc_env_run)
-    set(${vc_env_run_var} ${vc_env_run} PARENT_SCOPE)
-  else()
-    arcbuild_error("Unsupported arch(${arch}) in VC (${root})!")
-  endif()
+  set(${var_name} ${path} PARENT_SCOPE)
 endfunction()
 
 
 function(arcbuild_get_vs_cmake_generator generator_var sdk arch)
-  if(sdk STREQUAL "vs2017")
+  if(sdk STREQUAL "vs2019")
+    set(vs_version "16 2019")
+  elseif(sdk STREQUAL "vs2017")
     set(vs_version "15 2017")
   elseif(sdk STREQUAL "vs2015")
     set(vs_version "14 2015")
@@ -238,30 +80,52 @@ function(arcbuild_get_vs_cmake_generator generator_var sdk arch)
     arcbuild_error("Unsupported VS version: ${sdk}")
   endif()
   set(generator "Visual Studio ${vs_version}")
-  if(arch STREQUAL "x64")
-    set(generator "${generator} Win64")
-  elseif(arch STREQUAL "arm")
-    set(generator "${generator} ARM")
-  elseif(NOT arch STREQUAL "x86")
+  if(arch STREQUAL "x86")
+    if(sdk STRGREATER "vs2017")
+      set(generator ${generator} -A Win32)
+    else()
+      set(generator "${generator}")
+    endif()
+  elseif(arch STREQUAL "x64")
+    if(sdk STRGREATER "vs2017")
+      set(generator ${generator} -A x64)
+    else()
+      set(generator "${generator} Win64")
+    endif()
+  elseif(arch STREQUAL "arm" AND sdk STRGREATER "vs2012") # from vs2013
+    if(sdk MATCHES "^(vs2019)$")
+      set(generator ${generator} -A ARM)
+    else()
+      set(generator "${generator} ARM")
+    endif()
+  elseif(arch STREQUAL "arm64" AND sdk STRGREATER "vs2015") # from vs2017
+    if(sdk MATCHES "^(vs2019)$")
+      set(generator ${generator} -A ARM64)
+    else()
+      set(generator "${generator} ARM64")
+    endif()
+  else()
     arcbuild_error("Unsupported architecture for ${sdk}: ${arch}")
   endif()
   set(${generator_var} ${generator} PARENT_SCOPE)
 endfunction()
 
 
-function(arcbuild_get_make_targets var_name make_cmd work_dir)
-  arcbuild_execute_process(
-    COMMAND ${make_cmd} help
-    WORKING_DIRECTORY "${work_dir}"
-    RESULT_VARIABLE ret
-    OUTPUT_VARIABLE output
-    CMD_FILENAME "make_help"
-    ERROR_QUIET
-  )
-  string(REGEX MATCHALL "\\.\\.\\. ([^ \r\n\"]+)" targets "${output}")
-  string(REPLACE "... " ";" targets "${targets}")
-  string(STRIP "${targets}" targets)
-  set(${var_name} ${targets} PARENT_SCOPE)
+function(arcbuild_latest_vs_property property_name property_value_var)
+  set(vswhere_exec "$ENV{ProgramFiles\(x86\)}\\Microsoft Visual Studio\\Installer\\vswhere.exe")
+  if(EXISTS ${vswhere_exec})
+    execute_process(COMMAND "${vswhere_exec}"
+      -latest -property ${property_name}
+      OUTPUT_VARIABLE property_value
+      RESULT_VARIABLE vswhere_ret)
+    if(NOT vswhere_ret EQUAL 0)
+      arcbuild_error("Fail to query property ${property_name} from ${vswhere_exec}")
+    endif()
+    string(STRIP "${property_value}" property_value)
+    set(${property_value_var} ${property_value} PARENT_SCOPE)
+  else()
+    unset(${property_value_var} PARENT_SCOPE)
+  endif()
 endfunction()
 
 
@@ -283,79 +147,13 @@ function(arcbuild_collect_argv_not_in var_name excludes)
 endfunction()
 
 
-function(arcbuild_execute_process)
-  cmake_parse_arguments(A
-    "CHECK_DIFF;NO_EXEC" # options
-    "WORKING_DIRECTORY;CMD_FILENAME" # single value
-    "COMMAND;CMD_ARGS" # multiple values
-    ${ARGN}
-  )
-  set(content "")
-  foreach(cmd ${A_COMMAND})
-    string(REGEX REPLACE "\"[^\"]+\"" "" cmd_filtered "${cmd}")
-    if(cmd_filtered MATCHES "[ \t]+")
-      set(cmd "\"${cmd}\"")
-    endif()
-    set(content "${content}${cmd} ")
+function(arcbuild_clean_cmake_cache binary_dir)
+  arcbuild_warn("Cleaning cache in ${binary_dir}")
+  file(GLOB paths "${binary_dir}/CMakeCache.txt" "${binary_dir}/*.sln")
+  foreach(path ${paths})
+    arcbuild_echo("- ${path}")
+    file(REMOVE ${path})
   endforeach()
-  if(IS_WINDOWS)
-    set(content "@echo off\n${content} %*")
-  else()
-    set(content "${content} $*")
-  endif()
-  if(CMAKE_COMMAND MATCHES "\\.exe$")
-    set(A_CMD_FILENAME "${A_CMD_FILENAME}.bat")
-  else()
-    set(A_CMD_FILENAME "${A_CMD_FILENAME}.sh")
-  endif()
-  set(A_CMD_FILEPATH "${A_WORKING_DIRECTORY}/${A_CMD_FILENAME}")
-  if(A_CHECK_DIFF)
-    if(EXISTS "${A_CMD_FILEPATH}")
-      file(READ "${A_CMD_FILEPATH}" old_content)
-      if(content STREQUAL old_content)
-        cmake_parse_arguments(A
-          "" # options
-          "RESULT_VARIABLE" # single value
-          "" # multiple values
-          ${ARGN}
-        )
-        arcbuild_warn("Ignore command runing when no DIFF: ${A_CMD_FILEPATH}")
-        if(A_RESULT_VARIABLE)
-          set(${A_RESULT_VARIABLE} 0 PARENT_SCOPE) # return 0
-        endif()
-        return()
-      endif()
-    endif()
-  endif()
-  file(WRITE "${A_CMD_FILEPATH}" "${content}")
-  if(IS_WINDOWS)
-    set(final_cmd "cmd" "/c" "${A_CMD_FILENAME}")
-  else()
-    set(final_cmd "bash" "${A_CMD_FILENAME}")
-  endif()
-  if(NOT CMAKE_VERSION VERSION_LESS "3.8")
-    set(ENCODING_ARGUMENT ENCODING AUTO)
-  endif()
-  if(NOT A_NO_EXEC)
-    execute_process(
-      COMMAND ${final_cmd} ${A_CMD_ARGS}
-      WORKING_DIRECTORY ${A_WORKING_DIRECTORY}
-      ${ENCODING_ARGUMENT}
-      ${A_UNPARSED_ARGUMENTS}
-    )
-    cmake_parse_arguments(A
-      "" # options
-      "RESULT_VARIABLE;OUTPUT_VARIABLE" # single value
-      "" # multiple values
-      ${ARGN}
-    )
-    if(A_RESULT_VARIABLE)
-      set(${A_RESULT_VARIABLE} ${${A_RESULT_VARIABLE}} PARENT_SCOPE)
-    endif()
-    if(A_OUTPUT_VARIABLE)
-      set(${A_OUTPUT_VARIABLE} ${${A_OUTPUT_VARIABLE}} PARENT_SCOPE)
-    endif()
-  endif()
 endfunction()
 
 
@@ -372,7 +170,8 @@ function(arcbuild_get_first_available_path var_name)
 endfunction()
 
 
-function(arcbuild_build)
+# Fill the defaults values before generate and build project.
+macro(arcbuild_build_default_values)
   ##############################
   # Parse arguments
 
@@ -387,170 +186,163 @@ function(arcbuild_build)
   endif()
   arcbuild_set_from_short_var(ARCBUILD VERBOSE)
 
-  arcbuild_echo("--------------------------")
-  arcbuild_echo("--*-- START building --*--")
-
   ##############################
   # Default values
 
-  # SOURCE_DIR
-  if(NOT SOURCE_DIR)
-    set(SOURCE_DIR ".")
-  endif()
+  arcbuild_set_to_short_var(CMAKE TOOLCHAIN_FILE MAKE_PROGRAM VERBOSE_MAKEFILE BUILD_TYPE)
 
   if(NOT PLATFORM)
     arcbuild_error("Please set target platform, e.g. -DPLATFORM=android!")
   endif()
 
+  # BUILD_TYPE
+  if(NOT BUILD_TYPE)
+    set(BUILD_TYPE Release)
+  endif()
+
   # PLATFORM & SDK for vc
   if(PLATFORM MATCHES "^(vc|vs)[0-9]+")
     set(SDK ${PLATFORM})
-    set(PLATFORM "windows")
+    set(PLATFORM windows)
   endif()
 
   # ARCH
   if(NOT DEFINED ARCH)
     if(PLATFORM MATCHES "^(windows|linux|mac)$")
-      set(ARCH "x86")
+      set(ARCH x86)
     elseif(PLATFORM MATCHES "^(android|tizen)$")
-      set(ARCH "armv7-a")
+      set(ARCH armv7-a)
     elseif(PLATFORM MATCHES "^ios")
-      set(ARCH "armv7;armv7s;arm64")
+      set(ARCH armv7;armv7s;arm64)
     endif()
   endif()
 
-  # TYPE
-  # if(NOT DEFINED TYPE)
-  #   set(TYPE "SHARED")
-  # endif()
-  if(TYPE)
-    string(TOUPPER "${TYPE}" TYPE)
+  # SOURCE_DIR
+  if(NOT SOURCE_DIR)
+    arcbuild_error("No source directory is provided!")
+  endif()
+
+  # BINARY_DIR
+  if(NOT BINARY_DIR)
+    set(BINARY_DIR ".")
   endif()
 
   # ROOT from system enviroment variables
   if(NOT ROOT)
-    if(PLATFORM STREQUAL "android")
-      if(DEFINED ENV{ANDROID_NDK_ROOT})
-        arcbuild_get_first_available_path(ROOT $ENV{ANDROID_NDK_ROOT})
-        arcbuild_warn("Set ROOT from ENV{ANDROID_NDK_ROOT}: ${ROOT}")
-      endif()
-    elseif(PLATFORM STREQUAL "windows")
-      arcbuild_get_vc_root(ROOT "${SDK}")
+    if(DEFINED ENV{SDK_ROOT})
+      arcbuild_get_first_available_path(ROOT $ENV{SDK_ROOT})
+      arcbuild_warn("Set ROOT from ENV{SDK_ROOT}: ${ROOT}")
+    elseif(PLATFORM STREQUAL "android" AND DEFINED ENV{ANDROID_NDK_ROOT})
+      arcbuild_get_first_available_path(ROOT $ENV{ANDROID_NDK_ROOT})
+      arcbuild_warn("Set ROOT from ENV{ANDROID_NDK_ROOT}: ${ROOT}")
     endif()
   endif()
 
   # Get make program
-  if(NOT MAKE_PROGRAM)
-    arcbuild_get_make_program(MAKE_PROGRAM ${PLATFORM} "${ROOT}" "${SDK}")
-  endif()
-  if(MAKE_PROGRAM STREQUAL "nmake")
-    set(NMAKE TRUE)
-    set(CMAKE_GENERATOR "NMake Makefiles")
-  elseif(MAKE_PROGRAM MATCHES "^(msbuild|devenv)$")
-    set(MSVC_IDE TRUE)
-    if(MAKE_PROGRAM STREQUAL "msbuild")
-      set(MSBUILD TRUE)
-    else()
-      set(DEVENV TRUE)
-    endif()
+  if(PLATFORM STREQUAL "windows")
     arcbuild_get_vs_cmake_generator(CMAKE_GENERATOR "${SDK}" "${ARCH}")
+    # set(CMAKE_CONFIGURATION_TYPES ${BUILD_TYPE}) # ignore file generation warning for multiple configurations
   else()
+    if(NOT MAKE_PROGRAM)
+      arcbuild_get_make_program(MAKE_PROGRAM ${PLATFORM} "${ROOT}" "${SDK}")
+    endif()
     set(CMAKE_GENERATOR "Unix Makefiles")
-  endif()
-
-  # Get toolchain file
-  if(NOT TOOLCHAIN_FILE)
-    if(NOT MSVC_IDE)
-      arcbuild_get_toolchain(TOOLCHAIN_FILE ${PLATFORM})
-      if(TOOLCHAIN_FILE MATCHES ".cmake$")
-        set(TOOLCHAIN_FILE "${ARCBUILD}/toolchains/${TOOLCHAIN_FILE}")
-      endif()
+    # Get toolchain file
+    if(NOT TOOLCHAIN_FILE)
+      arcbuild_get_toolchain(TOOLCHAIN_FILE ${PLATFORM} ${ARCH})
     endif()
-  elseif(NOT EXISTS ${TOOLCHAIN_FILE})
-    set(TOOLCHAIN_FILE "${ARCBUILD}/toolchains/${TOOLCHAIN_FILE}")
-  else()
-    get_filename_component(TOOLCHAIN_FILE "${TOOLCHAIN_FILE}" REALPATH)
-  endif()
-
-  # SKIP_RPATH and BUILD_TYPE
-  if(NOT MSVC_IDE)
-    if(NOT DEFINED SKIP_RPATH)
-      set(SKIP_RPATH ON)
+    if(TOOLCHAIN_FILE)
+      get_filename_component(TOOLCHAIN_FILE "${TOOLCHAIN_FILE}" REALPATH BASE_DIR "${ARCBUILD}/toolchains")
     endif()
   endif()
-  if(NOT BUILD_TYPE)
-    set(BUILD_TYPE "Release")
-  endif()
 
-  # Get binary direcotry
-  if(TYPE STREQUAL "SHARED")
-    set(TYPE_SUFFIX "shared")
-  endif()
-  arcbuild_join(binary_subdir "_" ${PLATFORM} ${SDK} ${ARCH} ${TYPE_SUFFIX})
-
-  get_filename_component(SOURCE_DIR "${SOURCE_DIR}" ABSOLUTE)
-
-  # Convert ROOT to cmake-style path
+  # Convert ROOT to absolute and cmake-style path
   if(ROOT)
+    get_filename_component(ROOT "${ROOT}" ABSOLUTE)
     file(TO_CMAKE_PATH "${ROOT}" ROOT)
   endif()
 
-  ##############################
+  # ARCBUILD_EXECUTE_PROCESS_ARGS
+  if(VERBOSE EQUAL 0)
+    list(APPEND ARCBUILD_EXECUTE_PROCESS_ARGS OUTPUT_QUIET)
+  endif()
+  if(NOT CMAKE_VERSION VERSION_LESS "3.8")
+    arcbuild_echo("ENCODING=AUTO for CMake>=3.8")
+    list(APPEND ARCBUILD_EXECUTE_PROCESS_ARGS ENCODING AUTO)
+  endif()
+endmacro()
 
-  set(ARGUMENTS PLATFORM ARCH TYPE BUILD_TYPE
-                SDK STL SOURCE_DIR VERBOSE
-                ROOT TOOLCHAIN_FILE C_FLAGS CXX_FLAGS LINKER_FLAGS
-                API_VERSION SKIP_RPATH VERBOSE_MAKEFILE
-                MAKE_PROGRAM)
+
+# Generate the cmake project.
+function(arcbuild_build_generate)
+
+  ##############################
+  # Parsing and processing arguments
+
+  set(ARGUMENTS
+    SOURCE_DIR BINARY_DIR
+    PLATFORM ARCH TYPE BUILD_TYPE
+    SDK STL TOOLCHAIN VERBOSE
+    ROOT TOOLCHAIN_FILE C_FLAGS CXX_FLAGS LINKER_FLAGS LD_FLAGS
+    API_VERSION HIDDEN VERBOSE_MAKEFILE
+    MAKE_PROGRAM)
 
   # Remove processed arguments
   arcbuild_collect_argv_not_in(remained_cmake_args ARGUMENTS ${ARGN})
+  arcbuild_join(remained_cmake_args_display " " ${remained_cmake_args})
+  arcbuild_echo("Remained arguments: ${remained_cmake_args_display}")
 
-  # Commands of make and cmake
-  # if(CMAKE_VERSION VERSION_LESS "3.4")
-  #   arcbuild_download_cmake(CMAKE_CMD)
-  #   arcbuild_warn("Use CMake: ${CMAKE_CMD}")
-  # else()
-  #   set(CMAKE_CMD ${CMAKE_COMMAND})
-  # endif()
-  set(CMAKE_CMD ${CMAKE_COMMAND})
-  set(MAKE_CMD ${MAKE_PROGRAM})
+  # Hack for Visual Studio 2015
   if(PLATFORM STREQUAL "windows")
-    if(NMAKE)
-      arcbuild_get_vc_env_run(VC_ENV_RUN "${ROOT}" "${SDK}" "${ARCH}")
-      list(INSERT CMAKE_CMD 0 ${VC_ENV_RUN} &&)
-      list(INSERT MAKE_CMD 0 ${VC_ENV_RUN} &&)
-    else()
-      unset(MAKE_PROGRAM) # make is useless for msbuild or devenv
+    arcbuild_latest_vs_property("installationVersion" latest_vs_install_version)
+    arcbuild_echo("Lastest VS install version: ${latest_vs_install_version}")
+    if(SDK STREQUAL "vs2015" AND latest_vs_install_version VERSION_GREATER "15")
+      # https://gitlab.kitware.com/cmake/cmake/issues/17788
+      arcbuild_warn("Add CMAKE_SYSTEM_VERSION=8.1 for vs2015 when vs>=2017 is installed")
+      list(APPEND ARCBUILD_UNPARSED_ARGS -DCMAKE_SYSTEM_VERSION=8.1)
     endif()
-    unset(ROOT)
   endif()
 
   # Verbose of makefiles
-  if(NOT MSVC_IDE)
-    if(VERBOSE GREATER 3)
-      arcbuild_echo("Enable verbose Makefiles")
-      set(VERBOSE_MAKEFILE ON)
-    else()
-      set(VERBOSE_MAKEFILE OFF)
-    endif()
+  if(VERBOSE GREATER 3)
+    arcbuild_echo("Enable verbose Makefiles")
+    set(VERBOSE_MAKEFILE ON)
+  else()
+    set(VERBOSE_MAKEFILE OFF)
   endif()
 
   # Print information
   arcbuild_echo("Building Information:")
-  foreach(name ${ARGUMENTS} CMAKE_COMMAND CMAKE_VERSION CMAKE_GENERATOR VC_ENV_RUN CMAKE_CMD MAKE_CMD ${remained_cmake_args})
+  foreach(name ARCBUILD ARCBUILD_VERSION
+    CMAKE_COMMAND CMAKE_VERSION CMAKE_GENERATOR
+    ${ARGUMENTS} ${remained_cmake_args}
+    )
     if(DEFINED ${name})
       arcbuild_echo("- ${name}: ${${name}}")
     endif()
   endforeach()
-  arcbuild_echo("Remained arguments: ${remained_cmake_args}")
 
   # Set from short variables
-  arcbuild_set_from_short_var(ARCBUILD PLATFORM SDK VERBOSE)
-  arcbuild_set_from_short_var(SDK ROOT ARCH API_VERSION STL)
-  arcbuild_set_from_short_var(CMAKE TOOLCHAIN_FILE MAKE_PROGRAM VERBOSE_MAKEFILE BUILD_TYPE SKIP_RPATH)
+  arcbuild_set_from_short_var(ARCBUILD TYPE PLATFORM SDK VERBOSE HIDDEN)
+  arcbuild_set_from_short_var(SDK ROOT ARCH API_VERSION STL TOOLCHAIN)
+  arcbuild_set_from_short_var(CMAKE TOOLCHAIN_FILE MAKE_PROGRAM VERBOSE_MAKEFILE BUILD_TYPE)
 
   # Add compile and link flags
+  if(PLATFORM STREQUAL "windows")
+    arcbuild_append_c_flags("/DARCBUILD=1")
+  else()
+    arcbuild_append_c_flags("-Wall -DARCBUILD=1")
+    if(ARCH STREQUAL "x86")
+      arcbuild_append_c_flags("-m32")
+    elseif(ARCH STREQUAL "x64")
+      arcbuild_append_c_flags("-m64")
+    endif()
+    if(HIDDEN)
+      # arcbuild_append_c_flags("-fdata-sections -ffunction-sections")
+      arcbuild_append_c_flags("-fvisibility=hidden -fdata-sections -ffunction-sections")
+      arcbuild_append_cxx_flags("-fvisibility-inlines-hidden")
+    endif()
+  endif()
   if(C_FLAGS)
     arcbuild_append_c_flags(${C_FLAGS})
   endif()
@@ -560,48 +352,50 @@ function(arcbuild_build)
   if(LINKER_FLAGS)
     arcbuild_append_link_flags(${LINKER_FLAGS})
   endif()
-  if(NOT PLATFORM STREQUAL "windows")
-    arcbuild_append_c_flags("-Wall")
-    if(ARCH STREQUAL "x86")
-      arcbuild_append_c_flags("-m32")
-    elseif(ARCH STREQUAL "x64")
-      arcbuild_append_c_flags("-m64")
-    endif()
+  if(LD_FLAGS)
+    arcbuild_append_link_flags(${LD_FLAGS})
   endif()
 
   # Collect cmake arguments
-  set(cmake_args -G"${CMAKE_GENERATOR}")
-  if(MSVC_IDE)
-    list(APPEND cmake_args -DCMAKE_CONFIGURATION_TYPES="${BUILD_TYPE}")
-  endif()
+  set(cmake_args -G ${CMAKE_GENERATOR} ${ARCBUILD_UNPARSED_ARGS})
   foreach(name
     ARCBUILD
     ARCBUILD_VERBOSE
+    ARCBUILD_HIDDEN
 
     SDK_ROOT
     SDK_ARCH
     SDK_API_VERSION
     SDK_STL
+    SDK_TOOLCHAIN
 
     CMAKE_BUILD_TYPE
-    CMAKE_C_FLAGS
-    CMAKE_CXX_FLAGS
-    CMAKE_SHARED_LINKER_FLAGS
-    CMAKE_EXE_LINKER_FLAGS
+    CMAKE_CONFIGURATION_TYPES
 
     CMAKE_TOOLCHAIN_FILE
     CMAKE_MAKE_PROGRAM
     CMAKE_VERBOSE_MAKEFILE
-    CMAKE_SKIP_RPATH
     ${remained_cmake_args}
     )
     if(DEFINED ${name})
-      list(LENGTH ${name} num_itms)
-      if(num_items LESS 2)
-        list(APPEND cmake_args "-D${name}=${${name}}")
+      # join list as execute_process() do not support list arguments
+      arcbuild_join(${name} " " ${${name}})
+      list(APPEND cmake_args -D${name}=${${name}})
+    endif()
+  endforeach()
+  foreach(name
+    CMAKE_C_FLAGS
+    CMAKE_CXX_FLAGS
+    CMAKE_EXE_LINKER_FLAGS
+    CMAKE_MODULE_LINKER_FLAGS
+    CMAKE_SHARED_LINKER_FLAGS
+    )
+    if(DEFINED ${name})
+      if(CMAKE_TOOLCHAIN_FILE)
+        list(APPEND cmake_args -D${name}=${${name}})
       else()
-        arcbuild_join(value_joined " " ${${name}})
-        list(APPEND cmake_args "-D${name}=\"${value_joined}\"")
+        # Use CMAKE_XXX_FLAGS_INIT for native compiling
+        list(APPEND cmake_args -D${name}_INIT=${${name}})
       endif()
     endif()
   endforeach()
@@ -609,74 +403,45 @@ function(arcbuild_build)
   ##############################
   # Generate, build and pack
 
-  if(VERBOSE EQUAL 0)
-    list(APPEND extra_execute_args OUTPUT_QUIET)
+  # Remove old SDK's
+  file(GLOB zips "${BINARY_DIR}/*.ZIP")
+  if(zips)
+    arcbuild_warn("Removing old SDK's:")
+    foreach(path ${zips})
+      arcbuild_warn("- ${path}")
+      file(REMOVE "${path}")
+    endforeach()
   endif()
 
-  get_filename_component(BINARY_DIR "." ABSOLUTE)
+  # Create build directory if not existed
+  if(NOT EXISTS "${BINARY_DIR}")
+    arcbuild_echo("Make build directory: ${BINARY_DIR}")
+    file(MAKE_DIRECTORY "${BINARY_DIR}")
+  endif()
 
-  arcbuild_join(cmake_args_joined " " ${cmake_args})
-  arcbuild_debug("CMake arguments: ${cmake_args_joined}")
+  # Clean cache in binary directory
+  file(REMOVE "${BINARY_DIR}/arcbuild.dir")
+  arcbuild_clean_cmake_cache("${BINARY_DIR}")
 
   # Generate Makfiles
   arcbuild_echo("Generating Makefiles ...")
-  set(generate_extra_args ${extra_execute_args})
-  if(LAZY_GENERATE)
-    arcbuild_warn("Lazy generation is enabled")
-    list(APPEND generate_extra_args CHECK_DIFF)
-  endif()
-  arcbuild_execute_process(
-    COMMAND ${CMAKE_CMD} "${SOURCE_DIR}" ${cmake_args}
+  get_filename_component(SOURCE_DIR "${SOURCE_DIR}" ABSOLUTE)
+  list(APPEND cmake_args "${SOURCE_DIR}")
+  arcbuild_join(cmake_args_display " " ${cmake_args})
+  arcbuild_echo("CMake arguments: ${cmake_args_display}")
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} ${cmake_args}
     WORKING_DIRECTORY "${BINARY_DIR}"
-    RESULT_VARIABLE ret
-    CMD_FILENAME "generate"
-    ${generate_extra_args}
+    RESULT_VARIABLE generate_ret
+    ${ARCBUILD_EXECUTE_PROCESS_ARGS}
   )
-  if(NOT ret EQUAL 0)
+  if(NOT generate_ret EQUAL 0)
     arcbuild_error("Makefiles generation failed!")
   endif()
+endfunction()
 
-  if(MSVC_IDE)
-    arcbuild_find_vc_build_cmd(MAKE_CMD ${MAKE_CMD} "${BINARY_DIR}")
-    arcbuild_echo("MAKE_CMD: ${MAKE_CMD}")
-    file(GLOB SLN_FILES "${BINARY_DIR}/*.sln")
-    arcbuild_echo("SLN files: ${SLN_FILES}")
-    list(APPEND MAKE_CMD ${SLN_FILES})
-    if(MSBUILD)
-      list(APPEND MAKE_CMD "/nologo")
-      if(VERBOSE EQUAL 0)
-        set(MSBUILD_VERBOSE "/noconsolelogger")
-      elseif(VERBOSE EQUAL 1)
-        set(MSBUILD_VERBOSE "/verbosity:quiet")
-      elseif(VERBOSE EQUAL 2)
-        set(MSBUILD_VERBOSE "/verbosity:minimal")
-      elseif(VERBOSE EQUAL 3)
-        set(MSBUILD_VERBOSE "/verbosity:normal")
-      else()
-        set(MSBUILD_VERBOSE "/verbosity:detailed")
-      endif()
-      list(APPEND MAKE_CMD "${MSBUILD_VERBOSE}")
-    else()
-      list(APPEND MAKE_CMD /Build ${BUILD_TYPE})
-    endif()
-  elseif(NOT NMAKE)
-    list(APPEND MAKE_CMD "-j4") # speed up building
-  endif()
 
-  # Build
-  arcbuild_echo("Generating Makefiles ...")
-  if(IS_WINDOWS AND NOT PLATFORM STREQUAL "windows")
-    get_filename_component(MAKE_PROGRAM_DIR "${MAKE_PROGRAM}" DIRECTORY)
-    if(MAKE_PROGRAM_DIR)
-      list(INSERT MAKE_CMD 0 SET PATH=${MAKE_PROGRAM_DIR} %PATH% &&)
-    endif()
-  endif()
-  arcbuild_execute_process(
-    COMMAND ${MAKE_CMD}
-    WORKING_DIRECTORY "${BINARY_DIR}"
-    NO_EXEC
-    CMD_FILENAME "make"
-    ${extra_execute_args}
-  )
-  arcbuild_echo("--*-- END building --*--")
+function(arcbuild_build)
+  arcbuild_build_default_values()
+  arcbuild_build_generate(${ARGN})
 endfunction()

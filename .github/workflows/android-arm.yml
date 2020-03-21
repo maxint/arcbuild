@@ -6,15 +6,15 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: configure
-      run: mkdir build && cd build && cmake -P ../arcbuild.cmake -DROOT=$ANDROID_HOME/ndk-bundle -DPLATFORM=android -DARCH=armv7-a ..
+      run: mkdir build && cd build && cmake -P ../arcbuild.cmake -DROOT=$ANDROID_HOME/ndk-bundle -DPLATFORM=android -DARCH=armv7-a ../examples
     - name: build
       run: cmake --build build -j2
-      
+
   android-armv8:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
     - name: configure
-      run: mkdir build && cd build && cmake -P ../arcbuild.cmake -DROOT=$ANDROID_HOME/ndk-bundle -DPLATFORM=android -DARCH=armv8-a ..
+      run: mkdir build && cd build && cmake -P ../arcbuild.cmake -DROOT=$ANDROID_HOME/ndk-bundle -DPLATFORM=android -DARCH=armv8-a ../examples
     - name: build
       run: cmake --build build -j2

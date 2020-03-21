@@ -6,6 +6,6 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: configure
-      run: mkdir build && cd build && cmake -P ../arcbuild.cmake -DPLATFORM=vs2019 ..
+      run: mkdir build && cd build && cmake -P ../arcbuild.cmake -DPLATFORM=vs2019 ../examples
     - name: build
       run: cmake --build build -j2

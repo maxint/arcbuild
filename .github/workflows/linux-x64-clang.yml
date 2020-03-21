@@ -9,6 +9,6 @@ jobs:
       env:
         CC: clang
         CXX: clang++
-      run: mkdir build && cd build && cmake -P ../arcbuild.cmake -DPLATFORM=linux -DARCH=x64 ..
+      run: mkdir build && cd build && cmake -P ../arcbuild.cmake -DPLATFORM=linux -DARCH=x64 ../examples
     - name: build
       run: cmake --build build -j2
