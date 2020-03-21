@@ -1,0 +1,10 @@
+name: ios-arm
+on: [push, pull_request]
+jobs:
+  ios-iphone-os:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v1
+      run: mkdir build && cd build && cmake -P ../arcbuild.cmake -DPLATFORM=ios ..
+    - name: build
+      run: cmake --build build -j2
