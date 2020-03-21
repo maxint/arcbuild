@@ -82,7 +82,7 @@ cmake -P arcbuild.cmake -DPLATFORM=ios -DARCH="i386;x86_64"
 #### Build for [Emscripten]()
 
 ```shell
-cmake -P arcbuild.cmake -DPLATFORM=emscripten -DROOT=D:\sdk\emsdk-master\emscripten\1.38.11 -DMAKE_PROGRAM=D:\gnu-tools\bin\make.exe
+cmake -P arcbuild.cmake -DPLATFORM=emscripten -DROOT=D:\emscripten\1.38.11 -DMAKE_PROGRAM=D:\gnu-tools\bin\make.exe
 ```
 
 #### Custom cross compiling for Linux based platform
