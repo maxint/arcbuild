@@ -208,12 +208,14 @@ macro(arcbuild_build_default_values)
 
   # ARCH
   if(NOT DEFINED ARCH)
-    if(PLATFORM MATCHES "^(windows|linux|mac)$")
+    if(PLATFORM MATCHES "^(windows)$")
+      set(ARCH x86)
+    elseif(PLATFORM MATCHES "^(linux|mac)$")
       set(ARCH x86)
     elseif(PLATFORM MATCHES "^(android|tizen)$")
       set(ARCH armv7-a)
     elseif(PLATFORM MATCHES "^ios")
-      set(ARCH armv7;armv7s;arm64)
+      set(ARCH armv7;armv7s;arm64;arm64e)
     endif()
   endif()
 

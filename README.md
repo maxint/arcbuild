@@ -66,7 +66,7 @@ cmake -P arcbuild.cmake -DPLATFORM=vs2015
 cmake -P arcbuild.cmake -DPLATFORM=vs2017
 ```
 
-#### Build for Linux (`ARCH=x86` by default)
+#### Build for Linux (`ARCH=x64` by default)
 
 ```shell
 cmake -P arcbuild.cmake -DPLATFORM=linux
