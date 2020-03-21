@@ -36,9 +36,18 @@ set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES SDK_ROOT SDK_API_VERSION SDK_ARCH IOS_T
 # select xcode version and get SDK_ROOT
 if(NOT SDK_ROOT)
   find_program(XCODE_SELECT_COMMAND xcode-select)
+  message(STATUS "XCODE_SELECT_COMMAND: ${XCODE_SELECT_COMMAND}")
   if(XCODE_SELECT_COMMAND)
     execute_process(COMMAND ${XCODE_SELECT_COMMAND} "-print-path"
       OUTPUT_VARIABLE SDK_ROOT OUTPUT_STRIP_TRAILING_WHITESPACE)
+  endif()
+  if(SDK_ROOT MATCHES "/Library/Developer/CommandLineTools")
+    message(STATUS "`xcode-select -print-path` returns \"${SDK_ROOT}\", which is not iOS toolchain directory!")
+    unset(SDK_ROOT)
+  endif()
+  set(DEFAULT_XCODE_APP_ROOT "/Applications/Xcode.app/Contents/Developer")
+  if(NOT SDK_ROOT AND EXISTS ${DEFAULT_XCODE_APP_ROOT})
+    set(SDK_ROOT ${DEFAULT_XCODE_APP_ROOT})
   endif()
 endif()
 if(NOT SDK_ROOT)
@@ -54,9 +63,17 @@ if(NOT XCODE_VERSION)
     string(REGEX REPLACE "[ \t\r\n]" "" XCODE_VERSION "${XCODE_VERSION}")
     string(REGEX MATCH "<key>CFBundleShortVersionString</key><string>([0-9.]+)" XCODE_VERSION "${XCODE_VERSION}")
     string(REGEX MATCH "([0-9.]+)" XCODE_VERSION "${XCODE_VERSION}")
+  else()
+    message(FATAL_ERROR "${SDK_ROOT}/../version.plist does not existed!")
   endif()
 endif()
 message(STATUS "XCODE_VERSION: ${XCODE_VERSION}")
+
+# Initialize compiler and linker flags
+set(SDK_C_FLAGS)
+set(SDK_CXX_FLAGS)
+set(SDK_LINKER_FLAGS)
+set(SDK_LINKER_FLAGS_EXE)
 
 # hard set values
 if(NOT SDK_ARCH)
@@ -66,19 +83,16 @@ else()
 endif()
 message(STATUS "SDK_ARCH: ${SDK_ARCH}")
 
-# platform flags
-set(UNIX 1)
-set(APPLE 1)
-set(IOS 1)
-
 # iOS target
-if(SDK_ARCH MATCHES "(armv7|armv7s|arm64|arm64e)")
+if(SDK_ARCH MATCHES "^arm.*")
   set(IOS_TARGET "iPhoneOS")
-  set(ARM 1)
-  set(SDK_C_FLAGS "-miphoneos-version-min=7.0 -mfloat-abi=softfp -mfpu=neon -ftree-vectorize -ffast-math") # Enable NEON for ARM
+  list(APPEND SDK_C_FLAGS -miphoneos-version-min=7.0 -ftree-vectorize -ffast-math)
+  if(SDK_ARCH MATCHES "(armv7|armv7s)")
+    list(APPEND SDK_C_FLAGS -mfloat-abi=softfp -mfpu=neon ) # Enable NEON for ARM
+  endif()
 elseif(SDK_ARCH MATCHES "(i386|i686|x86_64)")
   set(IOS_TARGET "iPhoneSimulator")
-  set(SDK_C_FLAGS "-mios-simulator-version-min=7.0")
+  list(APPEND SDK_C_FLAGS -mios-simulator-version-min=7.0)
   else()
   message(FATAL_ERROR "Unknown target architectures: SDK_ARCH=${SDK_ARCH}")
 endif()
@@ -117,6 +131,13 @@ set(CMAKE_SYSTEM_NAME Darwin)
 set(CMAKE_SYSTEM_VERSION ${SDK_API_VERSION})
 #set(CMAKE_SYSTEM_PROCESSOR arm) # optional
 
+# platform flags
+set(APPLE 1)
+set(IOS 1)
+if(SDK_ARCH MATCHES "^arm.*")
+  set(ARM 1)
+endif()
+
 # root path
 set(CMAKE_FIND_ROOT_PATH ${OSX_TOOLCHAIN_ROOT} ${IOS_DEVELOPER_ROOT} ${CMAKE_OSX_SYSROOT})
 # only search the iOS sdks, not the remainder of the host filesystem
@@ -124,6 +145,7 @@ set(CMAKE_FIND_ROOT_PATH ${OSX_TOOLCHAIN_ROOT} ${IOS_DEVELOPER_ROOT} ${CMAKE_OSX
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+#set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
 # compiler
 set(CMAKE_C_COMPILER   ${OSX_TOOLCHAIN_ROOT}/usr/bin/clang)
@@ -142,11 +164,14 @@ set(CMAKE_SYSTEM_FRAMEWORK_PATH
   ${IOS_DEVELOPER_ROOT}/Developer/Library/Frameworks
   )
 
+# RPATH is useless when cross compiling.
+set(CMAKE_SKIP_RPATH ON)
+
 # compiler and linker flags
 # -v to print version
 if(IOS_BITCODE)
   if(SDK_API_VERSION VERSION_GREATER "6.0" AND NOT XCODE_VERSION VERSION_LESS "7.0")
-    set(SDK_C_FLAGS "${SDK_C_FLAGS} -fembed-bitcode") # enable bitcode when SDK>6.0 and xcode>=7.0
+    list(APPEND SDK_C_FLAGS -fembed-bitcode) # enable bitcode when SDK>6.0 and xcode>=7.0
   else()
     message(FATAL_ERROR "No bitcode support for Xcode ${XCODE_VERSION} and iOS SDK ${SDK_API_VERSION}")
   endif()
@@ -155,6 +180,12 @@ endif()
 # https://stackoverflow.com/questions/16294842/how-to-disable-c-dead-code-stripping-in-xcode
 # get all the symbols from the all archives
 set(SDK_LINKER_FLAGS "-Wl,-all_load")
+
+# combine
+string(REPLACE ";" " " SDK_C_FLAGS          "${SDK_C_FLAGS}")
+string(REPLACE ";" " " SDK_CXX_FLAGS        "${SDK_CXX_FLAGS}")
+string(REPLACE ";" " " SDK_LINKER_FLAGS     "${SDK_LINKER_FLAGS}")
+string(REPLACE ";" " " SDK_LINKER_FLAGS_EXE "${SDK_LINKER_FLAGS_EXE}")
 
 # Set or retrieve the cached flags.
 # This is necessary in case the user sets/changes flags in subsequent
