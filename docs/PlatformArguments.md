@@ -9,7 +9,7 @@
 ```
 
 
-### Linux (gcc)
+### Linux
 
 ```
 -DPLATFORM=linux
@@ -17,7 +17,7 @@
 ```
 
 
-### Android (gcc)
+### Android
 
 ```
 -DROOT=<NDK root directory> (default is from ANDROID_NDK_ROOT enviroment variable)
@@ -27,13 +27,13 @@
 ```
 
 
-### iOS (gcc)
+### iOS
 
 ```
 -DPLATFORM=ios
--DARCH=[armv7;][armv7s;][arm64;][arm64e] (armv7;armv7s;arm64;arm64e by default)
+-DARCH=[armv7;][armv7s;][arm64;][arm64e] (armv7;armv7s;arm64;arm64e by default) # ARM
+-DARCH=[i386;][x86_64] # simulator
 -DIOS_BITCODE=(ON,OFF) (OFF by default)
-```
 
 
 ### TODO
