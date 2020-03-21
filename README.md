@@ -4,6 +4,7 @@
 [![build status](/../../workflows/ios-arm/badge.svg)](/../../actions?query=workflow%3Aios-arm)
 [![build status](/../../workflows/windows-x64-vs2019/badge.svg)](/../../actions?query=workflow%3Awindows-x64-vs2019)
 [![build status](/../../workflows/linux-x64-clang/badge.svg)](/../../actions?query=workflow%3Alinux-x64-clang)
+[![build status](/../../workflows/linux-x64-gcc/badge.svg)](/../../actions?query=workflow%3Alinux-x64-gcc)
 
 Easy native and cross compiling for CMake projects.
 
@@ -28,8 +29,13 @@ Easy native and cross compiling for CMake projects.
 ```shell
 mkdir build
 cd build
-cmake -P ../arcbuild.cmake [(-D<var>=<value>)...] [<path-to-source>]
+cmake -P ../arcbuild.cmake [(-D<var>=<value>)...] ..
 cmake --build . --config <config> [--target <target>]
+```
+or
+```shell
+cmake -P arcbuild.cmake [(-D<var>=<value>)...] -S . -B build
+cmake --build build --config <config> [--target <target>]
 ```
 
 More `arcbuild.cmake` documents will be found in [docs](docs/README.md),
