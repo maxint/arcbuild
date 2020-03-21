@@ -5,7 +5,9 @@
 #
 # Supported (environment) variables:
 #
-# - SDK_ROOT: SDK root directory which contains "arm-linux-gnueabihf" or "aarch64-linux-gnueabihf" etc.
+# - SDK_ROOT (REQUIRED): SDK root directory which contains "arm-linux-gnueabihf" or "aarch64-linux-gnueabihf" etc.
+#
+#     Default: $ENV{ARCBUILD_PI_ROOT}
 #
 # - SDK_ARCH: target architecture
 #
@@ -38,6 +40,11 @@ elseif(SDK_ARCH MATCHES "^armv7")
   list(APPEND SDK_C_FLAGS -mfloat-abi=hard -mfpu=neon-vfpv4)
 elseif(SDK_ARCH MATCHES "^armv8")
   list(APPEND SDK_C_FLAGS -mfloat-abi=hard -mfpu=neon-fp-armv8)
+endif()
+
+# SDK_ROOT
+if(NOT SDK_ROOT)
+  set(SDK_ROOT "$ENV{ARCBUILD_PI_ROOT}")
 endif()
 
 include(${CMAKE_CURRENT_LIST_DIR}/gcc-toolchain.cmake)

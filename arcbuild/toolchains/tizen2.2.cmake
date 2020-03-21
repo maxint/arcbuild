@@ -3,7 +3,9 @@
 #
 # Supported (environment) variables:
 #
-# - SDK_ROOT: SDK root directory
+# - SDK_ROOT (REQUIRED): Tizen SDK root directory
+#
+#     Default: $ENV{ARCBUILD_TIZEN_ROOT}
 #
 
 cmake_minimum_required(VERSION 3.4.0)
@@ -40,6 +42,9 @@ endif()
 set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES SDK_ROOT)
 
 # SDK_ROOT
+if(NOT SDK_ROOT)
+  set(SDK_ROOT "$ENV{ARCBUILD_TIZEN_ROOT}")
+endif()
 if(NOT SDK_ROOT)
   message(FATAL_ERROR "Please set SDK_ROOT variable to toolchain root directory")
 endif()

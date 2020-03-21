@@ -26,13 +26,6 @@ Easy native and cross compiling for CMake projects.
 2. Generate build directory and build.
 
 ```shell
-mkdir build
-cd build
-cmake -P ../arcbuild.cmake [(-D<var>=<value>)...] ..
-cmake --build . --config <config> [--target <target>]
-```
-or
-```shell
 cmake -P arcbuild.cmake [(-D<var>=<value>)...] -S . -B build
 cmake --build build --config <config> [--target <target>]
 ```

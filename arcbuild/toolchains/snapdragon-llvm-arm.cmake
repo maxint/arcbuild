@@ -5,7 +5,9 @@
 #
 # Supported (environment) variables:
 #
-# - SDK_ROOT: SDK root directory which contains "armv7-linux-gnueabi" or "aarch64-linux-gnu" etc.
+# - SDK_ROOT (REQUIRED): SDK root directory which contains "armv7-linux-gnueabi" or "aarch64-linux-gnu" etc.
+#
+#     Default: $ENV{ARCBUILD_QTEE_ROOT}
 #
 # - SDK_ARCH: target architecture
 #
@@ -73,6 +75,9 @@ endif()
 message(STATUS "SDK_VERSION: ${SDK_VERSION}")
 
 # SDK_ROOT
+if(NOT SDK_ROOT)
+set(SDK_ROOT "$ENV{ARCBUILD_QTEE_ROOT}")
+endif()
 if(NOT SDK_ROOT)
   message(FATAL_ERROR "Please set SDK_ROOT variable to toolchain root directory")
 endif()

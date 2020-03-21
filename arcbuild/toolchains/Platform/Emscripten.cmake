@@ -6,12 +6,15 @@
 # Supported (environment) variables:
 #
 # - SDK_ROOT: SDK root directory
+#
+#     Default: $ENV{EMSCRIPTEN_ROOT}
+#
 
 cmake_minimum_required(VERSION 3.0.0)
 
 # SDK_ROOT
 if(NOT SDK_ROOT)
-  set(SDK_ROOT "$ENV{EMSCRIPTEN}")
+  set(SDK_ROOT "$ENV{EMSCRIPTEN_ROOT}")
 endif()
 if(NOT SDK_ROOT)
   message(FATAL_ERROR "Could not locate the Emscripten compiler toolchain directory! Either set the EMSCRIPTEN environment variable, or pass -DSDK_ROOT=xxx to CMake to explicitly specify the location of the compiler!")

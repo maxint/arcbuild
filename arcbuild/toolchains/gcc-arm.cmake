@@ -5,7 +5,7 @@
 #
 # Supported (environment) variables:
 #
-# - SDK_ROOT: SDK root directory which contains "arm-linux-gnueabihf" or "aarch64-linux-gnueabihf" etc.
+# - SDK_ROOT (REQUIRED): SDK root directory which contains "arm-linux-gnueabihf" or "aarch64-linux-gnueabihf" etc.
 #
 # - SDK_ARCH: target architecture
 #

@@ -5,7 +5,7 @@
 #
 # Supported (environment) variables:
 #
-# - SDK_ROOT: SDK root directory
+# - SDK_ROOT (REQUIRED): SDK root directory
 #
 # - SDK_ARCH: target architecture
 #

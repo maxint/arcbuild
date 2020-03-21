@@ -5,14 +5,16 @@
 #
 # Note: required NDK version: >=r11b
 #
-#   SDK_ROOT (REQUIRED) - NDK root directory
+#   SDK_ROOT (REQUIRED): NDK root directory
 #
-#   SDK_API_VERSION - Android API version
+#     Default: $ENV{ANDROID_NDK_ROOT}
+#
+#   SDK_API_VERSION: Android API version
 #
 #     Default: 21
 #     Posible values are independent on NDK version
 #
-#   SDK_ARCH - architecture
+#   SDK_ARCH: architecture
 #
 #     Default: armv7-a
 #     Posible values are:
@@ -25,7 +27,7 @@
 #       mips
 #       mips64
 #
-#   SDK_TOOLCHAIN - toolchain name
+#   SDK_TOOLCHAIN: toolchain name
 #
 #     Default: clang
 #     Posible values are:
@@ -33,7 +35,7 @@
 #       clang
 #       snapdragonclang https://developer.qualcomm.com/software/snapdragon-llvm-compiler-android
 #
-#   SDK_STL - specify the runtime to use
+#   SDK_STL: specify the runtime to use
 #
 #     Default: gnustl_static if SDK_TOOLCHAIN gcc, otherwise c++_static (NDK_VERSION>=17)
 #     Posible values are:
