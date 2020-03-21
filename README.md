@@ -3,7 +3,6 @@
 [![build status](/../../workflows/android-arm/badge.svg)](/../../actions?query=workflow%3Aandroid-arm)
 [![build status](/../../workflows/ios-arm/badge.svg)](/../../actions?query=workflow%3Aios-arm)
 [![build status](/../../workflows/windows-x64-vs2019/badge.svg)](/../../actions?query=workflow%3Awindows-x64-vs2019)
-[![build status](/../../workflows/linux-x64-clang/badge.svg)](/../../actions?query=workflow%3Alinux-x64-clang)
 [![build status](/../../workflows/linux-x64-gcc/badge.svg)](/../../actions?query=workflow%3Alinux-x64-gcc)
 
 Easy native and cross compiling for CMake projects.
