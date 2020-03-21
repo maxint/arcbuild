@@ -1,4 +1,4 @@
-name: windows-x64-vs2019
+name: windows-vs2019
 on: [push, pull_request]
 jobs:
   windows-vs2019:
