@@ -22,7 +22,7 @@ Easy native and cross compiling for CMake projects.
 
 ## Usage
 
-1. Download `arcbuild` and `arcbuild.cmake` to `<root of your project>/cmake`.
+1. Download `arcbuild` and `arcbuild.cmake` to `<root of your project>`.
 2. Generate build directory and build.
 
 ```shell
