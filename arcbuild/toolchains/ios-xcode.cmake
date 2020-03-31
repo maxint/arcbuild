@@ -132,6 +132,7 @@ set(CMAKE_SYSTEM_VERSION ${SDK_API_VERSION})
 #set(CMAKE_SYSTEM_PROCESSOR arm) # optional
 
 # platform flags
+set(UNIX 1)
 set(APPLE 1)
 set(IOS 1)
 if(SDK_ARCH MATCHES "^arm.*")

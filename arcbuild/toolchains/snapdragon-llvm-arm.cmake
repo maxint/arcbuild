@@ -76,7 +76,7 @@ message(STATUS "SDK_VERSION: ${SDK_VERSION}")
 
 # SDK_ROOT
 if(NOT SDK_ROOT)
-set(SDK_ROOT "$ENV{ARCBUILD_QTEE_ROOT}")
+  set(SDK_ROOT "$ENV{ARCBUILD_QTEE_ROOT}")
 endif()
 if(NOT SDK_ROOT)
   message(FATAL_ERROR "Please set SDK_ROOT variable to toolchain root directory")
@@ -86,11 +86,6 @@ message(STATUS "SDK_ROOT: ${SDK_ROOT}")
 # Basic setup
 set(CMAKE_SYSTEM_NAME GNU)
 set(CMAKE_SYSTEM_VERSION 1)
-
-# Set platform flags
-set(SNAPDRAGON 1)
-set(ARM 1)
-set(CMAKE_SYSTEM_PROCESSOR ARM) # optional
 
 # Reset flags
 set(SDK_C_FLAGS -DBARE_METAL=1)
@@ -113,7 +108,11 @@ message(STATUS "CMAKE_SYSROOT: ${CMAKE_SYSROOT}")
 message(STATUS "SDK_TARGET_TRIPLET: ${SDK_TARGET_TRIPLET}")
 message(STATUS "SDK_TARGET_TOOLCHAIN_ROOT: ${SDK_TARGET_TOOLCHAIN_ROOT}")
 
-# Set more platform flags
+# Set platform flags
+set(UNIX 1)
+set(SNAPDRAGON 1)
+set(ARM 1)
+set(CMAKE_SYSTEM_PROCESSOR ARM) # optional
 if(SDK_TARGET_TRIPLET MATCHES ".*-none-.*")
   set(BARE_METAL 1)
   set(TEE 1)

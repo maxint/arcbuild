@@ -55,6 +55,7 @@ set(CMAKE_SYSTEM_VERSION 1)
 set(CMAKE_SYSTEM_PROCESSOR arm) # optional
 
 # platform flags
+set(UNIX 1)
 set(TIZEN 1)
 set(ARM 1)
 
